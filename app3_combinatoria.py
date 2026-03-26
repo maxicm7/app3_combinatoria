@@ -55,7 +55,7 @@ def extraer_datos_inteligente(file):
             # 2do Intento: Si no hay guiones, asumir que están en diferentes columnas (Tu archivo)
             nums = pd.to_numeric(row, errors='coerce').dropna().astype(int).tolist()
             # Filtrar números válidos de lotería (evitar años o decimales)
-            nums_validos = sorted(list(set([n for n in nums if 0 <= n <= 150])))
+            nums_validos = sorted(list(set([n for n in nums if 0 <= n <= 60000)))
             
             if len(nums_validos) >= 4:
                 tupla = tuple(nums_validos)
