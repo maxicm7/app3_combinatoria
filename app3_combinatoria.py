@@ -55,7 +55,8 @@ def extraer_datos_inteligente(file):
             # 2do Intento: Si no hay guiones, asumir que están en diferentes columnas (Tu archivo)
             nums = pd.to_numeric(row, errors='coerce').dropna().astype(int).tolist()
             # Filtrar números válidos de lotería (evitar años o decimales)
-            nums_validos = sorted(list(set([n for n in nums if 0 <= n <= 60000)))
+            # ✅ CORRECCIÓN DE SINTAXIS AQUÍ (Paréntesis balanceados)
+            nums_validos = sorted(list(set([n for n in nums if 0 <= n <= 60000])))
             
             if len(nums_validos) >= 4:
                 tupla = tuple(nums_validos)
@@ -114,8 +115,22 @@ if file_app1 is not None and file_app2 is not None:
         st.balloons()
         st.subheader("💎 Diamantes Puros (Coincidencia 100%)")
         df_diamantes = df2[df2['Tupla'].isin(diamantes_puros)].copy()
-        df_diamantes = df_diamantes.drop(columns=['Tupla'])
-        st.dataframe(df_diamantes, use_container_width=True)
+        
+        # Preparar columnas para mostrar y descargar
+        cols_export = [c for c in df_diamantes.columns if c != 'Tupla']
+        df_show = df_diamantes[cols_export].reset_index(drop=True)
+        
+        st.dataframe(df_show, use_container_width=True)
+        
+        # ✅ BOTÓN DE DESCARGA PARA DIAMANTES PUROS
+        if not df_show.empty:
+            csv = df_show.to_csv(index=False, encoding='utf-8-sig')
+            st.download_button(
+                label=f"📥 Descargar {len(df_show)} Diamantes Puros (CSV)",
+                data=csv,
+                file_name="diamantes_puros_coincidencia_100.csv",
+                mime="text/csv",
+            )
     else:
         st.warning("No hubo coincidencias exactas del 100%. Busca similitudes abajo.")
 
@@ -130,9 +145,11 @@ if file_app1 is not None and file_app2 is not None:
 
     cercanos_data = []
     with st.spinner("Cruzando datos..."):
+        # Optimización: Convertir set1 a lista para iterar más rápido si es necesario
+        lista_set1 = list(set1)
         for t2 in set2:
             if t2 in diamantes_puros: continue
-            for t1 in set1:
+            for t1 in lista_set1:
                 comunes = len(set(t2).intersection(set(t1)))
                 if comunes >= umbral:
                     # Extraer info de df2
@@ -154,5 +171,25 @@ if file_app1 is not None and file_app2 is not None:
 
         st.success(f"Se encontraron **{len(df_cercanos)}** combinaciones similares.")
         st.dataframe(df_cercanos.reset_index(drop=True), use_container_width=True)
+        
+        # ✅ BOTÓN DE DESCARGA PARA DIAMANTES CERCANOS
+        csv_cercanos = df_cercanos.to_csv(index=False, encoding='utf-8-sig')
+        st.download_button(
+            label=f"📥 Descargar {len(df_cercanos)} Diamantes Cercanos (CSV)",
+            data=csv_cercanos,
+            file_name="diamantes_cercanos_similitud.csv",
+            mime="text/csv",
+        )
     else:
         st.error("No se encontraron combinaciones similares. Intenta bajar el umbral del slider.")
+
+# --- Sidebar con información ---
+st.sidebar.header("ℹ️ Cómo usar esta herramienta")
+st.sidebar.markdown("""
+1. **App 1:** Sube los resultados del *Modelo Homeostático*.
+2. **App 2:** Sube los resultados del *Agente Dinámico*.
+3. **Diamantes Puros:** Son las combinaciones que aparecen en AMBOS modelos.
+4. **Diamantes Cercanos:** Combinaciones de la App 2 que se parecen mucho a la App 1.
+
+**Consejo:** Si no hay Diamantes Puros, baja el umbral del slider para encontrar coincidencias parciales fuertes.
+""")
